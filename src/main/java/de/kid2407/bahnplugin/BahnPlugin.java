@@ -27,7 +27,7 @@ public class BahnPlugin extends JavaPlugin {
             createConfig();
             logger.info("Die Konfigurationsdatei wurde erzeugt. Um das Plugin nutzen zu können, die Werte entsprechend anpassen");
         } else {
-//            DBHelper.initConnection();
+            DBHelper.initConnection();
             getCommand("bahn").setExecutor(new BahnCommand());
         }
 

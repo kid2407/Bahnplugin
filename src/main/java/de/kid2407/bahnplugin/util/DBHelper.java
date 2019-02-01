@@ -43,7 +43,7 @@ public class DBHelper {
         if (!dbExists) {
             // Setup Tables
             try {
-                PreparedStatement statement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS bahnsystem (position VARCHAR(6) NOT NULL, playername VARCHAR(255) NOT NULL)");
+                PreparedStatement statement = connection.prepareStatement("CREATE TABLE IF NOT EXISTS bahnsystem (position VARCHAR(6) NOT NULL, playername VARCHAR(32) NOT NULL, UNIQUE (playername))");
                 if (statement != null) {
                     statement.execute();
                     dbExists = true;

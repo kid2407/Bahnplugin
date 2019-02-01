@@ -4,5 +4,5 @@ name: BahnPlugin
 commands:
   bahn:
     description: Gibt den Bahnhof zu dem angegebenen Spieler zurueck
-    usage: /bahn <spielername>
+    usage: "§cUsage: /bahn [set|delete] <spielername> [bahnhof]"
     permission: bahnplugin.use
