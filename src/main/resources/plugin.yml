@@ -1,8 +1,8 @@
 main: de.kid2407.bahnplugin.BahnPlugin
-version: 1.0
+version: 1.1
 name: BahnPlugin
 commands:
   bahn:
-    description: Gibt den Bahnhof zu dem angegebenen Spieler zurueck
-    usage: "§cUsage: /bahn [set|delete] <spielername> [bahnhof]"
+    description: Gibt den Bahnhof zu dem angegebenen Spieler zurueck oder passt diesen an
+    usage: "/bahn [help|get|set|delete] <spielername> [bahnhof]"
     permission: bahnplugin.use

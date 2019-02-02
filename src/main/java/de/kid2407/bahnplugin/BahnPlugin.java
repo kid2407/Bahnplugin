@@ -16,6 +16,7 @@ public class BahnPlugin extends JavaPlugin {
     public static BahnPlugin instance;
     public static Logger logger;
     public static boolean hasChanged = true;
+    public static String prefix = "§1[BahnPlugin] §r";
 
     @Override
     public void onEnable() {
@@ -29,6 +30,7 @@ public class BahnPlugin extends JavaPlugin {
         } else {
             DBHelper.initConnection();
             getCommand("bahn").setExecutor(new BahnCommand());
+            getCommand("bahn").setTabCompleter(new BahnCommand());
         }
 
         getLogger().info("BahnPlugin enabled.");
