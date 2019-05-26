@@ -1,5 +1,5 @@
 main: de.kid2407.bahnplugin.BahnPlugin
-version: 1.1
+version: 1.2.1
 name: BahnPlugin
 commands:
   bahn:
