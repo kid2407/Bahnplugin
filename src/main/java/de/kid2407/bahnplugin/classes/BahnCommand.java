@@ -19,6 +19,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
     private static boolean hasChanged = false;
     private CommandSender commandSender;
     private static ArrayList<String> commandList = new ArrayList<>(Arrays.asList("delete", "get", "help", "set"));
+    private int retryCount = 0;
 
     public BahnCommand() {
         generateEntries();
@@ -177,11 +178,17 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
 
                             return true;
                         } catch (SQLException e) {
-                            BahnPlugin.logger.severe("Fehler beim Anlegen oder Updaten eines Eintrages.");
-                            BahnPlugin.logger.severe(e.getMessage());
-                            commandSender.sendMessage(BahnPlugin.prefix + "Es gab einen internen Fehler, bitte erneut versuchen.");
+                            if (retryCount < 3) {
+                                DBHelper.resetConnection();
+                                retryCount++;
+                                return setOrAddStation(playername, station);
+                            } else {
+                                BahnPlugin.logger.severe("Fehler beim Anlegen oder Updaten eines Eintrages.");
+                                BahnPlugin.logger.severe(e.getMessage());
+                                commandSender.sendMessage(BahnPlugin.prefix + "Es gab einen internen Fehler, bitte erneut versuchen.");
 
-                            return false;
+                                return false;
+                            }
                         }
                     } else {
                         commandSender.sendMessage(BahnPlugin.prefix + String.format("Du hast keine Berechtigung, Eintr\u00e4ge f\u00fcr %s zu ver\u00e4ndern.", playername));
@@ -218,10 +225,16 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                         return false;
                     }
                 } catch (SQLException e) {
-                    BahnPlugin.logger.severe("Fehler beim L\u00f6schen eines Eintrags.");
-                    BahnPlugin.logger.severe(e.getMessage());
-                    commandSender.sendMessage(BahnPlugin.prefix + "Es gab einen internen Fehler, bitte erneut versuchen.");
-                    return false;
+                    if (retryCount < 3) {
+                        DBHelper.resetConnection();
+                        retryCount++;
+                        return removePlayerStation(playername);
+                    } else {
+                        BahnPlugin.logger.severe("Fehler beim L\u00f6schen eines Eintrags.");
+                        BahnPlugin.logger.severe(e.getMessage());
+                        commandSender.sendMessage(BahnPlugin.prefix + "Es gab einen internen Fehler, bitte erneut versuchen.");
+                        return false;
+                    }
                 }
             } else {
                 commandSender.sendMessage(BahnPlugin.prefix + String.format("Du hast keine Berechtigung, Eintr\u00e4ge f\u00fcr %s zu l\u00f6schen.", playername));
@@ -265,7 +278,13 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            if (retryCount < 3) {
+                DBHelper.resetConnection();
+                retryCount++;
+                generateEntries();
+            } else {
+                e.printStackTrace();
+            }
         }
     }
 }

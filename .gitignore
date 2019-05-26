@@ -2,3 +2,4 @@
 .idea
 Bahnplugin.iml
 target/
+deployPlugin.bat

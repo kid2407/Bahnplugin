@@ -17,18 +17,11 @@ public class DBHelper {
     private static Connection connection;
 
     public static void initConnection() {
-//        try {
-//            Class.forName("com.mysql.jdbc.Driver");
-//        } catch (ClassNotFoundException cnfException) {
-//            BahnPlugin.logger.severe("Kein jdbc Driver gefunden!");
-//        }
-
-
         if (connection == null) {
             try {
                 FileConfiguration config = BahnPlugin.instance.getConfig();
 
-                String url = String.format("jdbc:mysql://%s:%d/%s", config.getString("mysql.host"), config.getInt("mysql.port"), config.getString("mysql.dbname"));
+                String url = String.format("jdbc:mysql://%s:%d/%s?autoReconnect=true", config.getString("mysql.host"), config.getInt("mysql.port"), config.getString("mysql.dbname"));
                 String username = config.getString("mysql.user");
                 String password = config.getString("mysql.pass");
 
@@ -49,6 +42,21 @@ public class DBHelper {
                     dbExists = true;
                 } else {
                     BahnPlugin.logger.severe("Konnte die Tabelle \"bahnsystem\" nicht erzeugen.");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public static void resetConnection() {
+        if (connection != null) {
+            try {
+                if (!connection.isValid(5)) {
+                    if (!connection.isClosed()) {
+                        connection.close();
+                    }
+                    connection = null;
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
