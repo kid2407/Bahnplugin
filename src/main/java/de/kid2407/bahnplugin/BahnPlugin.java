@@ -4,6 +4,7 @@ import de.kid2407.bahnplugin.classes.BahnCommand;
 import de.kid2407.bahnplugin.util.DBHelper;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.logging.Logger;
@@ -15,7 +16,6 @@ public class BahnPlugin extends JavaPlugin {
 
     public static BahnPlugin instance;
     public static Logger logger;
-    public static boolean hasChanged = true;
     public static String prefix = "§1[BahnPlugin] §r";
 
     @Override
@@ -43,6 +43,7 @@ public class BahnPlugin extends JavaPlugin {
         getLogger().info("BahnPlugin disabled.");
     }
 
+    @NotNull
     @Override
     public FileConfiguration getConfig() {
         return super.getConfig();

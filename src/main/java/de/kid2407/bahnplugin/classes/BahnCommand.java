@@ -4,6 +4,7 @@ import de.kid2407.bahnplugin.BahnPlugin;
 import de.kid2407.bahnplugin.util.DBHelper;
 import org.bukkit.command.*;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -26,7 +27,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public List<String> onTabComplete(CommandSender commandSender, Command command, String s, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, String[] args) {
         int argsCount = args.length;
         ArrayList<String> result = new ArrayList<>();
         if (argsCount == 0) {
@@ -34,9 +35,8 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
             result = commandList;
         } else if (argsCount == 1 && !commandList.contains(args[0])) {
             // One arg provided, but not a valid one
-            String argRegEx = String.format("^%s.*$", args[0]);
             for (String singleCommand : commandList) {
-                if (singleCommand.matches(argRegEx)) {
+                if (singleCommand.startsWith(args[0])) {
                     result.add(singleCommand);
                 }
             }
@@ -50,7 +50,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                         result.addAll(entries.keySet());
                     } else if (argsCount == 2) {
                         // The arg and at least one more provided
-                        result.addAll(getEntriesFromIterableByRegex(String.format("^%s.*$", args[1]), entries.keySet().toArray(new String[0])));
+                        result.addAll(getPlayernamesFromSearch(args[1], entries.keySet().toArray(new String[0])));
                     }
                     break;
                 default:
@@ -61,13 +61,14 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
         return result;
     }
 
-    private ArrayList<String> getEntriesFromIterableByRegex(String regex, String[] iterable) {
+    private ArrayList<String> getPlayernamesFromSearch(String search, String[] iterable) {
+        int MAX_RESULTS_COUNT = 10;
         ArrayList<String> result = new ArrayList<>();
         for (String playerName : iterable) {
-            if (playerName.matches(regex)) {
+            if (playerName.toLowerCase().startsWith(search.toLowerCase())) {
                 result.add(playerName);
             }
-            if (result.size() == 10) {
+            if (result.size() == MAX_RESULTS_COUNT) {
                 break;
             }
         }
@@ -76,7 +77,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
     }
 
     @Override
-    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] args) {
+    public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
         this.commandSender = commandSender;
 
         if (args.length > 0) {
@@ -119,7 +120,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
         return false;
     }
 
-    private boolean getStationsByPlayerName(String playername) {
+    private boolean getStationsByPlayerName(@NotNull String playername) {
         if (playername.matches("^[a-zA-Z\\d_]{1,32}$")) {
             StringBuilder returnMessage = new StringBuilder();
             if (hasChanged) {
@@ -127,12 +128,11 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                 hasChanged = false;
             }
 
-            String regex = String.format("^%s.*", playername);
             HashMap<String, String> results = new HashMap<>();
 
             for (Map.Entry<String, String> entry : entries.entrySet()) {
-                if (entry.getKey().matches(regex)) {
-                    results.put(entry.getKey(), entry.getValue());
+                if (entry.getKey().toLowerCase().startsWith(playername.toLowerCase())) {
+                    results.put(entry.getKey().toLowerCase(), entry.getValue());
                 }
             }
 
@@ -162,13 +162,13 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
         // Valid Station Identifier
         if (station.matches("^[NOSW]\\d{1,2}([NOSW]\\d{1,2})?$") && station.length() >= 2 && station.length() <= 6) {
             if (playername.length() <= 32) {
-                if (playername.matches("^[a-zA-Z\\d_]{1,32}$")) {
+                if (playername.matches("^[a-zA-Z\\d_]{1,32}$") || commandSender.isOp() || commandSender instanceof ConsoleCommandSender) { // Allow anything, not just playernames, when send by console or OP
                     if ((commandSender instanceof Player && (((Player) commandSender).getDisplayName().equals(playername)) || commandSender.isOp()) || commandSender instanceof ConsoleCommandSender) {
                         try {
                             PreparedStatement statement = DBHelper.prepare("INSERT INTO bahnsystem (position, playername) VALUES (?, ?) ON DUPLICATE KEY UPDATE position=?");
                             if (statement != null) {
                                 statement.setString(1, station);
-                                statement.setString(2, playername);
+                                statement.setString(2, playername.toLowerCase());
                                 statement.setString(3, station);
                                 statement.execute();
                             }
@@ -214,7 +214,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                 try {
                     PreparedStatement statement = DBHelper.prepare("DELETE FROM bahnsystem WHERE playername = ?");
                     if (statement != null) {
-                        statement.setString(1, playername);
+                        statement.setString(1, playername.toLowerCase());
                         statement.execute();
 
                         commandSender.sendMessage(BahnPlugin.prefix + "Eintrag erfolgreich gel\u00f6scht.");
@@ -274,7 +274,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                 entries = new HashMap<>();
 
                 while (resultset.next()) {
-                    entries.put(resultset.getString("playername"), resultset.getString("position"));
+                    entries.put(resultset.getString("playername").toLowerCase(), resultset.getString("position"));
                 }
             }
         } catch (SQLException e) {
