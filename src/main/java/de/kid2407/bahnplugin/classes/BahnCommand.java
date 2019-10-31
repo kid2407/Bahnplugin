@@ -160,7 +160,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
 
     private boolean setOrAddStation(String playername, String station) {
         // Valid Station Identifier
-        if (station.matches("^([NOSW]\\d{1,2}){1,2}$") && station.length() >= 2 && station.length() <= 6) {
+        if (station.matches("^([NOSW][1-9](\\d)?){1,2}$") && station.length() >= 2 && station.length() <= 6) {
             if (playername.length() <= 32) {
                 if (playername.matches("^[a-zA-Z\\d_]{1,32}$") || commandSender.isOp() || commandSender instanceof ConsoleCommandSender) { // Allow anything, not just playernames, when send by console or OP
                     if ((commandSender instanceof Player && (((Player) commandSender).getDisplayName().equals(playername)) || commandSender.isOp()) || commandSender instanceof ConsoleCommandSender) {
