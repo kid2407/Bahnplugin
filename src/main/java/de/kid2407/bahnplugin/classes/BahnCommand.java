@@ -21,6 +21,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
     private CommandSender commandSender;
     private static ArrayList<String> commandList = new ArrayList<>(Arrays.asList("delete", "get", "help", "set"));
     private int retryCount = 0;
+    private String playerRegex = "^[a-zA-Z\\d_]{1,32}$";
 
     public BahnCommand() {
         generateEntries();
@@ -42,15 +43,23 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
             }
         } else {
             switch (args[0]) {
-                case "delete":
                 case "get":
-                case "set":
                     if (argsCount == 1) {
                         // Only the arg provided
                         result.addAll(entries.keySet());
                     } else if (argsCount == 2) {
                         // The arg and at least one more provided
                         result.addAll(getPlayernamesFromSearch(args[1], entries.keySet().toArray(new String[0])));
+                    }
+                    break;
+                case "set":
+                case "delete":
+                    if (argsCount > 1) {
+                        if (commandSender instanceof Player && ((Player) commandSender).getDisplayName().equals(args[1])) { // Calling player is the same as the used player name
+                            result.add(args[1]);
+                        } else if (commandSender.isOp() || commandSender instanceof ConsoleCommandSender) {
+                            result.addAll(getPlayernamesFromSearch(args[1], entries.keySet().toArray(new String[0])));
+                        }
                     }
                     break;
                 default:
@@ -84,7 +93,12 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
             switch (args[0]) {
                 case "get":
                     if (args.length >= 2) {
-                        return getStationsByPlayerName(args[1]);
+                        if (args[1].matches(this.playerRegex) || commandSender.isOp() || commandSender instanceof ConsoleCommandSender) {
+                            return getStationsByPlayerName(args[1]);
+                        } else {
+                            commandSender.sendMessage(BahnPlugin.prefix + "Ung\u00fcltiger Spielername.");
+                            return true;
+                        }
                     } else {
                         commandSender.sendMessage(BahnPlugin.prefix + "Benutzung: /bahn get §4<Spielername>");
                         return true;
@@ -121,48 +135,46 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean getStationsByPlayerName(@NotNull String playername) {
-        if (playername.matches("^[a-zA-Z\\d_]{1,32}$")) {
-            StringBuilder returnMessage = new StringBuilder();
-            if (hasChanged) {
-                generateEntries();
-                hasChanged = false;
-            }
-
-            HashMap<String, String> results = new HashMap<>();
-
-            for (Map.Entry<String, String> entry : entries.entrySet()) {
-                if (entry.getKey().toLowerCase().startsWith(playername.toLowerCase())) {
-                    results.put(entry.getKey().toLowerCase(), entry.getValue());
-                }
-            }
-
-            if (results.size() == 0) {
-                returnMessage.append(BahnPlugin.prefix).append(String.format("Keine Eintr\u00e4ge f\u00fcr %s gefunden", playername));
-            } else {
-                if (results.size() == 1) {
-                    returnMessage.append(BahnPlugin.prefix).append("Es wurde 1 Ergebnis gefunden:\n\n");
-                } else {
-                    returnMessage.append(BahnPlugin.prefix).append(String.format("Es wurden %d Ergebnisse gefunden:\n\n", results.size()));
-                }
-
-                for (Map.Entry<String, String> singleResult : results.entrySet()) {
-                    returnMessage.append(BahnPlugin.prefix).append(String.format("Spieler: %s | Bahnhof: %s\n", singleResult.getKey(), singleResult.getValue()));
-                }
-            }
-
-            commandSender.sendMessage(returnMessage.toString());
-        } else {
-            commandSender.sendMessage(BahnPlugin.prefix + "Ung\u00fcltiger Spielername.");
+        StringBuilder returnMessage = new StringBuilder();
+        if (hasChanged) {
+            generateEntries();
+            hasChanged = false;
         }
+
+        HashMap<String, String> results = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : entries.entrySet()) {
+            if (entry.getKey().toLowerCase().startsWith(playername.toLowerCase())) {
+                results.put(entry.getKey().toLowerCase(), entry.getValue());
+            }
+        }
+
+        if (results.size() == 0) {
+            returnMessage.append(BahnPlugin.prefix).append(String.format("Keine Eintr\u00e4ge f\u00fcr %s gefunden", playername));
+        } else {
+            if (results.size() == 1) {
+                returnMessage.append(BahnPlugin.prefix).append("Es wurde 1 Ergebnis gefunden:\n\n");
+            } else {
+                returnMessage.append(BahnPlugin.prefix).append(String.format("Es wurden %d Ergebnisse gefunden:\n\n", results.size()));
+            }
+
+            for (Map.Entry<String, String> singleResult : results.entrySet()) {
+                returnMessage.append(BahnPlugin.prefix).append(String.format("Spieler: %s | Bahnhof: %s\n", singleResult.getKey(), singleResult.getValue()));
+            }
+        }
+
+        commandSender.sendMessage(returnMessage.toString());
 
         return true;
     }
 
     private boolean setOrAddStation(String playername, String station) {
         // Valid Station Identifier
-        if (station.matches("^([NOSW][1-9](\\d)?){1,2}$") && station.length() >= 2 && station.length() <= 6) {
+        String stationRegex = "^([NOSW][1-9](\\d)?){1,2}$";
+        station = station.toUpperCase();
+        if ((station.matches(stationRegex) && station.length() >= 2 && station.length() <= 6) || station.equals("HUB")) {
             if (playername.length() <= 32) {
-                if (playername.matches("^[a-zA-Z\\d_]{1,32}$") || commandSender.isOp() || commandSender instanceof ConsoleCommandSender) { // Allow anything, not just playernames, when send by console or OP
+                if (playername.matches(this.playerRegex) || commandSender.isOp() || commandSender instanceof ConsoleCommandSender) { // Allow anything, not just playernames, when send by console or OP
                     if ((commandSender instanceof Player && (((Player) commandSender).getDisplayName().equals(playername)) || commandSender.isOp()) || commandSender instanceof ConsoleCommandSender) {
                         try {
                             PreparedStatement statement = DBHelper.prepare("INSERT INTO bahnsystem (position, playername) VALUES (?, ?) ON DUPLICATE KEY UPDATE position=?");
@@ -218,6 +230,7 @@ public class BahnCommand implements CommandExecutor, TabCompleter {
                         statement.execute();
 
                         commandSender.sendMessage(BahnPlugin.prefix + "Eintrag erfolgreich gel\u00f6scht.");
+                        generateEntries();
 
                         return true;
                     } else {

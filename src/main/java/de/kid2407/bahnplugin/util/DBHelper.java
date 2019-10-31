@@ -40,6 +40,7 @@ public class DBHelper {
                 if (statement != null) {
                     statement.execute();
                     dbExists = true;
+                    fixOldData();
                 } else {
                     BahnPlugin.logger.severe("Konnte die Tabelle \"bahnsystem\" nicht erzeugen.");
                 }
@@ -82,6 +83,15 @@ public class DBHelper {
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private static void fixOldData() {
+        try {
+            PreparedStatement statement = connection.prepareStatement("UPDATE bahnsystem SET position = 'HUB' WHERE position REGEXP '[NSOW]0'");
+            statement.execute();
+        } catch (SQLException e) {
+            BahnPlugin.logger.severe(e.getMessage());
         }
     }
 
